@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Healthful — Ingredient Safety Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --orange:#FF6B35;
+  --orange-light:#FFF0E8;
+  --orange-mid:#FFD4B5;
+  --teal:#38B2AC;
+  --teal-light:#E6FFFA;
+  --purple:#8B5CF6;
+  --purple-light:#EDE9FE;
+  --pink:#EC4899;
+  --green:#10B981;
+  --green-light:#D1FAE5;
+  --red:#EF4444;
+  --red-light:#FEE2E2;
+  --amber:#F59E0B;
+  --amber-light:#FEF3C7;
+  --bg:#FFF8F0;
+  --text:#1A1A2E;
+  --text-muted:#6B7280;
+  --border:#FDDCB5;
+  --white:#FFFFFF;
+  --card-shadow:0 4px 24px rgba(255,107,53,0.08);
+}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ── SCREEN MANAGER ── */
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex;flex-direction:column}
+
+/* ── FLOATING SILHOUETTES ── */
+.silhouettes{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+@keyframes bop1{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-22px) rotate(-2deg)}}
+@keyframes bop2{0%,100%{transform:translateY(0) rotate(8deg)}50%{transform:translateY(18px) rotate(12deg)}}
+@keyframes bop3{0%,100%{transform:translateY(0) rotate(2deg)}50%{transform:translateY(-16px) rotate(7deg)}}
+@keyframes bop4{0%,100%{transform:translateY(0) rotate(-10deg)}50%{transform:translateY(14px) rotate(-4deg)}}
+@keyframes bop5{0%,100%{transform:translateY(0) rotate(4deg)}50%{transform:translateY(-20px) rotate(10deg)}}
+@keyframes bop6{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(16px) rotate(-8deg)}}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+@keyframes orbit{0%{transform:rotate(0deg) translateX(60px) rotate(0deg)}100%{transform:rotate(360deg) translateX(60px) rotate(-360deg)}}
+.sil{position:absolute;opacity:1}
+.sil.s1{top:20px;left:16px;animation:bop1 4.5s ease-in-out infinite}
+.sil.s2{top:14px;right:18px;animation:bop2 5.5s ease-in-out infinite}
+.sil.s3{top:28%;left:8px;animation:bop3 6s ease-in-out infinite}
+.sil.s4{top:25%;right:10px;animation:bop4 5s ease-in-out infinite}
+.sil.s5{bottom:22%;left:14px;animation:bop5 7s ease-in-out infinite}
+.sil.s6{bottom:18%;right:12px;animation:bop6 6.5s ease-in-out infinite}
+.sil.s7{bottom:60px;left:42%;animation:bop2 8s ease-in-out infinite}
+.sil.s8{top:52%;right:6px;animation:bop1 9s ease-in-out infinite}
+.sil.s9{top:48%;left:4px;animation:bop3 7.5s ease-in-out infinite}
+.sil.s10{bottom:140px;right:40%;animation:bop4 10s ease-in-out infinite}
+.sil.s11{top:38%;left:55%;animation:bop5 11s ease-in-out infinite;opacity:0.6}
+.sil.s12{top:68%;right:48%;animation:bop6 9.5s ease-in-out infinite;opacity:0.5}
+
+/* ── LANDING ── */
+#landing{align-items:center;justify-content:center;padding:40px 20px;position:relative}
+.landing-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;max-width:480px;width:100%}
+.logo{font-size:15px;font-weight:900;color:var(--orange);letter-spacing:-0.5px;margin-bottom:36px}
+.logo span{color:var(--teal)}
+.hero-title{font-size:clamp(28px,6vw,40px);font-weight:900;color:var(--text);text-align:center;line-height:1.1;margin-bottom:12px}
+.hero-title .hl{color:var(--orange);background:var(--orange-light);border-radius:8px;padding:0 8px;display:inline-block}
+.hero-sub{font-size:14px;color:var(--text-muted);text-align:center;line-height:1.65;margin-bottom:36px;max-width:340px}
+.input-card{width:100%;background:var(--white);border:2px solid var(--orange-mid);border-radius:18px;padding:6px 6px 6px 18px;display:flex;align-items:center;gap:10px;box-shadow:var(--card-shadow);transition:border-color 0.2s}
+.input-card:focus-within{border-color:var(--orange)}
+.input-card input{border:none;outline:none;background:transparent;font-family:'Nunito',sans-serif;font-size:14px;color:var(--text);flex:1;width:100%;padding:10px 0;font-weight:600}
+.input-card input::placeholder{color:#D1C4B8;font-weight:400}
+.search-icon{flex-shrink:0;color:var(--orange);opacity:0.6}
+.analyze-btn{background:var(--orange);color:#fff;border:none;border-radius:12px;padding:13px 28px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer;white-space:nowrap;transition:background 0.2s,transform 0.1s;flex-shrink:0}
+.analyze-btn:hover{background:#e85a24}
+.analyze-btn:active{transform:scale(0.97)}
+.db-tags{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:20px}
+.db-tag{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px}
+.t-eu{background:#E8F4FD;color:#1A6FA8}
+.t-fda{background:#EDF7F6;color:#1A7A72}
+.t-who{background:#FFF3E0;color:#B45309}
+.t-iarc{background:#FDE8E8;color:#B91C1C}
+.t-ewg{background:#F3E8FF;color:#7C3AED}
+.t-cds{background:#FEF9C3;color:#854D0E}
+
+/* ── LOADING ── */
+#loading{align-items:center;justify-content:center;position:relative}
+.loading-inner{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:28px;padding:40px 20px}
+.orbit-wrap{position:relative;width:160px;height:160px;display:flex;align-items:center;justify-content:center}
+@keyframes orbitItem{0%{transform:rotate(var(--start)) translateX(65px) rotate(calc(-1 * var(--start)))}100%{transform:rotate(calc(var(--start) + 360deg)) translateX(65px) rotate(calc(-1 * (var(--start) + 360deg)))}}
+@keyframes pulseCore{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.orbit-core{width:64px;height:64px;background:var(--white);border:3px solid var(--orange-mid);border-radius:50%;display:flex;align-items:center;justify-content:center;position:absolute;animation:pulseCore 2s ease-in-out infinite;box-shadow:0 0 0 8px rgba(255,107,53,0.08)}
+.orbit-item{position:absolute;width:36px;height:36px;animation:orbitItem var(--dur,6s) linear infinite;animation-delay:var(--delay,0s)}
+.orbit-item svg{width:36px;height:36px}
+.loading-msg{font-size:16px;font-weight:700;color:var(--text);text-align:center;min-height:28px;transition:opacity 0.4s}
+.loading-sub{font-size:12px;color:var(--text-muted);text-align:center}
+.loading-error{background:#FEE2E2;border:1px solid #FECACA;border-radius:12px;padding:16px 20px;max-width:360px;text-align:center}
+.loading-error p{font-size:13px;color:#B91C1C;font-weight:600;margin-bottom:10px}
+.retry-btn{background:var(--red);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+
+/* ── RESULTS ── */
+#results{align-items:center;padding:30px 20px 60px;position:relative}
+.results-inner{position:relative;z-index:2;width:100%;max-width:480px;display:flex;flex-direction:column;align-items:center;gap:0}
+.results-logo{font-size:14px;font-weight:900;color:var(--orange);margin-bottom:20px}
+.results-logo span{color:var(--teal)}
+
+/* Score section */
+.score-card{background:var(--white);border-radius:24px;padding:28px 24px 24px;width:100%;text-align:center;box-shadow:var(--card-shadow);border:1.5px solid var(--orange-mid);margin-bottom:16px}
+.product-name-result{font-size:13px;color:var(--text-muted);margin-bottom:16px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.score-ring-wrap{position:relative;width:140px;height:140px;margin:0 auto 12px}
+.score-ring-wrap svg{width:140px;height:140px}
+.score-number{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center}
+.score-num{font-size:38px;font-weight:900;line-height:1}
+.score-denom{font-size:11px;color:var(--text-muted);font-weight:600}
+.rating-badge{display:inline-block;font-size:13px;font-weight:800;padding:5px 18px;border-radius:20px;margin-bottom:0}
+
+/* Risk metric strip */
+.risk-strip{width:100%;border-radius:14px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.risk-strip .risk-label{font-size:14px;font-weight:800}
+.risk-strip .risk-desc{font-size:12px;font-weight:600;opacity:0.8;text-align:right;flex:1}
+
+/* Action buttons */
+.action-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;width:100%}
+.action-btn{padding:11px 18px;border-radius:12px;border:2px solid transparent;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;transition:all 0.2s;position:relative}
+.action-btn.flagged{background:var(--red-light);color:#B91C1C;border-color:#FECACA}
+.action-btn.flagged:hover,.action-btn.flagged.active{background:#B91C1C;color:#fff;border-color:#B91C1C}
+.action-btn.safe{background:var(--green-light);color:#065F46;border-color:#A7F3D0}
+.action-btn.safe:hover,.action-btn.safe.active{background:#065F46;color:#fff;border-color:#065F46}
+.action-btn.risk{background:var(--amber-light);color:#92400E;border-color:#FDE68A}
+.action-btn.risk:hover,.action-btn.risk.active{background:#92400E;color:#fff;border-color:#92400E}
+.action-btn.full{background:var(--purple-light);color:#5B21B6;border-color:#DDD6FE}
+.action-btn.full:hover,.action-btn.full.active{background:#5B21B6;color:#fff;border-color:#5B21B6}
+.btn-count{display:inline-block;background:rgba(0,0,0,0.12);border-radius:20px;padding:1px 7px;font-size:11px;margin-left:4px}
+
+/* Panel */
+.panel{width:100%;background:var(--white);border-radius:18px;border:1.5px solid var(--border);padding:20px;margin-bottom:16px;display:none}
+.panel.active{display:block}
+.panel-title{font-size:14px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+/* Flagged ingredients */
+.flag-item{background:var(--red-light);border:1px solid #FECACA;border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.flag-item:last-child{margin-bottom:0}
+.flag-item-name{font-size:14px;font-weight:800;color:#991B1B}
+.flag-item-status{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin:4px 0;background:#FCA5A5;color:#7F1D1D}
+.flag-item-reason{font-size:12px;color:#B91C1C;line-height:1.5;margin-top:4px}
+
+/* Safe ingredients */
+.safe-grid{display:flex;flex-wrap:wrap;gap:8px}
+.safe-pill{background:var(--green-light);color:#065F46;border:1px solid #A7F3D0;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700}
+
+/* Risk metrics */
+.risk-metric{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #F3F4F6}
+.risk-metric:last-child{border-bottom:none}
+.risk-metric-name{font-size:13px;font-weight:700;color:var(--text)}
+.risk-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px}
+.rb-low{background:var(--green-light);color:#065F46}
+.rb-medium{background:var(--amber-light);color:#92400E}
+.rb-high{background:var(--red-light);color:#991B1B}
+.rb-none{background:#F3F4F6;color:#6B7280}
+
+/* Full analysis */
+.full-section{margin-bottom:16px}
+.full-section-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:8px}
+.full-section-body{font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;font-weight:600}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F3F4F6;font-size:13px}
+.stat-row:last-child{border-bottom:none}
+.stat-label{color:var(--text-muted);font-weight:600}
+.stat-val{font-weight:800;color:var(--text)}
+
+/* Another product */
+.another-btn{background:transparent;border:2px solid var(--orange-mid);color:var(--orange);border-radius:12px;padding:12px 24px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-top:8px;transition:all 0.2s;width:100%}
+.another-btn:hover{background:var(--orange);color:#fff;border-color:var(--orange)}
+
+/* Disclaimer */
+.disclaimer{font-size:11px;color:var(--text-muted);text-align:center;line-height:1.6;margin-top:16px;padding:12px 16px;background:rgba(255,255,255,0.6);border-radius:10px;border:1px solid var(--border)}
+
+/* Loading overlay for dimmed bg silhouettes */
+#loading .silhouettes .sil{opacity:0.4}
+</style>
+</head>
+<body>
+
+<!-- SHARED FLOATING SILHOUETTES -->
+<div class="silhouettes">
+  <div class="sil s1"><svg width="38" height="68" viewBox="0 0 38 68"><rect x="10" y="0" width="18" height="6" rx="3" fill="#FF6B35" opacity="0.6"/><rect x="7" y="6" width="24" height="4" rx="2" fill="#FF6B35" opacity="0.45"/><ellipse cx="19" cy="42" rx="14" ry="26" fill="#FF6B35" opacity="0.18"/></svg></div>
+  <div class="sil s2"><svg width="30" height="54" viewBox="0 0 30 54"><rect x="7" y="0" width="16" height="5" rx="2" fill="#38B2AC" opacity="0.55"/><rect x="2" y="5" width="26" height="49" rx="6" fill="#38B2AC" opacity="0.18"/></svg></div>
+  <div class="sil s3"><svg width="46" height="34" viewBox="0 0 46 34"><rect x="0" y="9" width="46" height="25" rx="6" fill="#F59E0B" opacity="0.2"/><ellipse cx="23" cy="9" rx="10" ry="7" fill="#F59E0B" opacity="0.32"/></svg></div>
+  <div class="sil s4"><svg width="28" height="54" viewBox="0 0 28 54"><rect x="6" y="0" width="16" height="5" rx="2" fill="#8B5CF6" opacity="0.5"/><rect x="0" y="5" width="28" height="49" rx="7" fill="#8B5CF6" opacity="0.16"/></svg></div>
+  <div class="sil s5"><svg width="26" height="48" viewBox="0 0 26 48"><ellipse cx="13" cy="30" rx="11" ry="18" fill="#EC4899" opacity="0.18"/><rect x="8" y="0" width="10" height="13" rx="3" fill="#EC4899" opacity="0.38"/></svg></div>
+  <div class="sil s6"><svg width="42" height="30" viewBox="0 0 42 30"><rect x="0" y="0" width="42" height="30" rx="5" fill="#10B981" opacity="0.18"/><rect x="15" y="0" width="12" height="8" rx="4" fill="#10B981" opacity="0.32"/></svg></div>
+  <div class="sil s7"><svg width="22" height="44" viewBox="0 0 22 44"><rect x="5" y="0" width="12" height="4" rx="2" fill="#FF6B35" opacity="0.5"/><ellipse cx="11" cy="28" rx="10" ry="18" fill="#FF6B35" opacity="0.16"/></svg></div>
+  <div class="sil s8"><svg width="34" height="28" viewBox="0 0 34 28"><ellipse cx="17" cy="16" rx="17" ry="12" fill="#38B2AC" opacity="0.2"/><rect x="11" y="0" width="12" height="8" rx="4" fill="#38B2AC" opacity="0.32"/></svg></div>
+  <div class="sil s9"><svg width="24" height="50" viewBox="0 0 24 50"><rect x="5" y="0" width="14" height="5" rx="2" fill="#8B5CF6" opacity="0.45"/><rect x="1" y="5" width="22" height="45" rx="5" fill="#8B5CF6" opacity="0.14"/></svg></div>
+  <div class="sil s10"><svg width="36" height="26" viewBox="0 0 36 26"><rect x="0" y="6" width="36" height="20" rx="5" fill="#F59E0B" opacity="0.18"/><ellipse cx="18" cy="6" rx="8" ry="6" fill="#F59E0B" opacity="0.28"/></svg></div>
+  <div class="sil s11"><svg width="20" height="38" viewBox="0 0 20 38"><rect x="4" y="0" width="12" height="4" rx="2" fill="#EC4899" opacity="0.35"/><ellipse cx="10" cy="24" rx="9" ry="15" fill="#EC4899" opacity="0.14"/></svg></div>
+  <div class="sil s12"><svg width="30" height="22" viewBox="0 0 30 22"><rect x="0" y="0" width="30" height="22" rx="4" fill="#10B981" opacity="0.16"/><rect x="10" y="0" width="10" height="6" rx="3" fill="#10B981" opacity="0.28"/></svg></div>
+</div>
+
+<!-- SCREEN 1: LANDING -->
+<div id="landing" class="screen active">
+  <div class="landing-inner">
+    <div class="logo">health<span>ful</span></div>
+    <h1 class="hero-title">Is your product<br/><span class="hl">really safe?</span></h1>
+    <p class="hero-sub">Paste any ingredient list, product name, or URL — we check every ingredient against EU, FDA, WHO, IARC & more.</p>
+    <div class="input-card">
+      <svg class="search-icon" width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="#FF6B35" stroke-width="1.8"/><path d="M13 13l3.5 3.5" stroke="#FF6B35" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <input id="main-input" placeholder="e.g. Dove soap, paste ingredients, or a product URL…" autocomplete="off"/>
+      <button class="analyze-btn" onclick="startAnalysis()">Analyze →</button>
+    </div>
+    <div class="db-tags">
+      <span class="db-tag t-eu">EU</span>
+      <span class="db-tag t-fda">FDA</span>
+      <span class="db-tag t-who">WHO</span>
+      <span class="db-tag t-iarc">IARC</span>
+      <span class="db-tag t-ewg">EWG</span>
+      <span class="db-tag t-cds">CDSCO</span>
+      <span class="db-tag t-who">Prop 65</span>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 2: LOADING -->
+<div id="loading" class="screen">
+  <div class="loading-inner">
+    <div class="orbit-wrap">
+      <div class="orbit-core">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12" stroke="#FF6B35" stroke-width="2.5" stroke-dasharray="6 3"/></svg>
+      </div>
+      <!-- orbit items -->
+      <div class="orbit-item" style="--start:0deg;--dur:5s;--delay:0s">
+        <svg viewBox="0 0 36 36"><rect x="9" y="2" width="18" height="5" rx="2.5" fill="#FF6B35" opacity="0.7"/><rect x="7" y="7" width="22" height="4" rx="1.5" fill="#FF6B35" opacity="0.5"/><ellipse cx="18" cy="24" rx="13" ry="16" fill="#FF6B35" opacity="0.28"/></svg>
+      </div>
+      <div class="orbit-item" style="--start:90deg;--dur:5s;--delay:0s">
+        <svg viewBox="0 0 36 36"><rect x="8" y="2" width="20" height="5" rx="2" fill="#38B2AC" opacity="0.65"/><rect x="4" y="7" width="28" height="26" rx="5" fill="#38B2AC" opacity="0.22"/></svg>
+      </div>
+      <div class="orbit-item" style="--start:180deg;--dur:5s;--delay:0s">
+        <svg viewBox="0 0 36 36"><rect x="3" y="10" width="30" height="22" rx="5" fill="#8B5CF6" opacity="0.22"/><ellipse cx="18" cy="10" rx="9" ry="7" fill="#8B5CF6" opacity="0.45"/></svg>
+      </div>
+      <div class="orbit-item" style="--start:270deg;--dur:5s;--delay:0s">
+        <svg viewBox="0 0 36 36"><rect x="9" y="2" width="18" height="5" rx="2.5" fill="#EC4899" opacity="0.6"/><ellipse cx="18" cy="22" rx="13" ry="16" fill="#EC4899" opacity="0.22"/></svg>
+      </div>
+    </div>
+    <div id="loading-msg" class="loading-msg">Reading ingredients…</div>
+    <div class="loading-sub">Checking against global safety databases</div>
+    <div id="loading-error" class="loading-error" style="display:none">
+      <p id="error-text">Something went wrong. Please try again.</p>
+      <button class="retry-btn" onclick="retryAnalysis()">Try again</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 3: RESULTS -->
+<div id="results" class="screen">
+  <div class="results-inner">
+    <div class="results-logo">health<span>ful</span></div>
+
+    <!-- Score Card -->
+    <div class="score-card">
+      <div class="product-name-result" id="res-product-name">Product Analysis</div>
+      <div class="score-ring-wrap">
+        <svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="70" cy="70" r="56" fill="none" stroke="#F3F4F6" stroke-width="10"/>
+          <circle id="score-arc" cx="70" cy="70" r="56" fill="none" stroke="#FF6B35" stroke-width="10"
+            stroke-linecap="round" stroke-dasharray="351.86" stroke-dashoffset="351.86"
+            transform="rotate(-90 70 70)" style="transition:stroke-dashoffset 1.2s ease,stroke 0.5s"/>
+        </svg>
+        <div class="score-number">
+          <span class="score-num" id="res-score-num" style="color:#FF6B35">—</span>
+          <span class="score-denom">/ 10</span>
+        </div>
+      </div>
+      <div><span class="rating-badge" id="res-rating-badge">—</span></div>
+    </div>
+
+    <!-- Risk Strip -->
+    <div class="risk-strip" id="res-risk-strip">
+      <div class="risk-label" id="res-risk-label">—</div>
+      <div class="risk-desc" id="res-risk-desc">—</div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-btns">
+      <button class="action-btn flagged" id="btn-flagged" onclick="togglePanel('flagged')">
+        Flagged <span class="btn-count" id="count-flagged">0</span>
+      </button>
+      <button class="action-btn safe" id="btn-safe" onclick="togglePanel('safe')">
+        Safe <span class="btn-count" id="count-safe">0</span>
+      </button>
+      <button class="action-btn risk" id="btn-risk" onclick="togglePanel('risk')">
+        Risk metrics
+      </button>
+      <button class="action-btn full" id="btn-full" onclick="togglePanel('full')">
+        Full report
+      </button>
+    </div>
+
+    <!-- Flagged Panel -->
+    <div class="panel" id="panel-flagged">
+      <div class="panel-title" style="color:#991B1B">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#991B1B" stroke-width="1.5"/><path d="M8 4.5v4M8 10.5v1" stroke="#991B1B" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Flagged ingredients
+      </div>
+      <div id="flagged-list"></div>
+    </div>
+
+    <!-- Safe Panel -->
+    <div class="panel" id="panel-safe">
+      <div class="panel-title" style="color:#065F46">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#065F46" stroke-width="1.5"/><path d="M5 8l2 2 4-4" stroke="#065F46" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Safe ingredients
+      </div>
+      <div class="safe-grid" id="safe-list"></div>
+    </div>
+
+    <!-- Risk Metrics Panel -->
+    <div class="panel" id="panel-risk">
+      <div class="panel-title" style="color:#92400E">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2L14 13H2L8 2Z" stroke="#92400E" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 7v3M8 11.5v.5" stroke="#92400E" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Risk metrics
+      </div>
+      <div id="risk-list"></div>
+    </div>
+
+    <!-- Full Report Panel -->
+    <div class="panel" id="panel-full">
+      <div class="panel-title" style="color:#5B21B6">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="2" stroke="#5B21B6" stroke-width="1.5"/><path d="M5 5h6M5 8h6M5 11h4" stroke="#5B21B6" stroke-width="1.2" stroke-linecap="round"/></svg>
+        Full analysis report
+      </div>
+      <div id="full-report-content"></div>
+    </div>
+
+    <button class="another-btn" onclick="goHome()">Check another product →</button>
+    <div class="disclaimer">⚕️ This analysis is informational only, based on public regulatory data. Not a substitute for professional medical advice. Ingredient safety varies by individual health conditions and regional regulations.</div>
+  </div>
+</div>
+
+<script>
+let lastInput = '';
+let analysisData = null;
+let activePanel = null;
+
+const MESSAGES = [
+  'Reading ingredients…',
+  'Checking banned substances…',
+  'Calculating safety score…',
+  'Cross-referencing databases…',
+  'Almost there…'
+];
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function startAnalysis() {
+  const input = document.getElementById('main-input').value.trim();
+  if (!input) {
+    document.getElementById('main-input').focus();
+    return;
+  }
+  lastInput = input;
+  runAnalysis(input);
+}
+
+function retryAnalysis() {
+  document.getElementById('loading-error').style.display = 'none';
+  runAnalysis(lastInput);
+}
+
+function goHome() {
+  document.getElementById('main-input').value = '';
+  activePanel = null;
+  showScreen('landing');
+}
+
+let msgInterval;
+function startLoadingMessages() {
+  let i = 0;
+  const el = document.getElementById('loading-msg');
+  el.textContent = MESSAGES[0];
+  msgInterval = setInterval(() => {
+    i = (i + 1) % MESSAGES.length;
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.textContent = MESSAGES[i];
+      el.style.opacity = '1';
+    }, 300);
+  }, 2200);
+}
+
+function stopLoadingMessages() {
+  clearInterval(msgInterval);
+}
+
+async function runAnalysis(input) {
+  showScreen('loading');
+  document.getElementById('loading-error').style.display = 'none';
+  startLoadingMessages();
+
+  const systemPrompt = `You are a professional ingredient safety analyst. Analyze any product (by name, URL, or ingredient list) for safety using EU, FDA, WHO, IARC, Prop 65, EWG, and CDSCO databases.
+
+You MUST respond with ONLY a valid JSON object — no markdown, no backticks, no preamble.
+
+JSON structure:
+{
+  "productName": "string — product name or best guess",
+  "category": "string — e.g. Cosmetic, Food, Supplement",
+  "score": number (1.0–10.0, one decimal),
+  "rating": "EXCELLENT|GOOD|MODERATE|CAUTION|POOR|UNSAFE",
+  "riskLevel": "Low risk|Moderate risk|High risk|Very high risk",
+  "riskDescription": "one sentence plain-English summary",
+  "flaggedIngredients": [
+    {
+      "name": "ingredient name",
+      "status": "BANNED|RESTRICTED|WATCH",
+      "reason": "brief reason why it is flagged"
+    }
+  ],
+  "safeIngredients": ["name1","name2","name3"],
+  "riskMetrics": {
+    "systemicToxicity": "Low|Medium|High|Very High|None",
+    "carcinogenicity": "Low|Medium|High|Very High|None",
+    "endocrineDisruption": "Low|Medium|High|Very High|None",
+    "organToxicity": "Low|Medium|High|Very High|None",
+    "sensitization": "Low|Medium|High|Very High|None",
+    "specialPopulations": "Low|Medium|High|Very High|None"
+  },
+  "bannedCount": number,
+  "restrictedCount": number,
+  "carcinogenFlags": number,
+  "endocrineDisruptors": number,
+  "topConcerns": ["concern1","concern2","concern3"],
+  "topSafe": ["safe1","safe2","safe3"],
+  "recommendation": "1-2 sentence plain English recommendation",
+  "disclaimer": "Short regulatory note about regional differences"
+}
+
+Use your knowledge of the product's known ingredients if only a product name is given. Be accurate and evidence-based.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: `Analyze this product for ingredient safety: ${input}` }]
+      })
+    });
+
+    const data = await response.json();
+    stopLoadingMessages();
+
+    if (!response.ok || !data.content) {
+      throw new Error(data.error?.message || 'API error');
+    }
+
+    const raw = data.content.map(b => b.text || '').join('');
+    const clean = raw.replace(/```json|```/g, '').trim();
+    analysisData = JSON.parse(clean);
+    renderResults(analysisData);
+    showScreen('results');
+
+  } catch (err) {
+    stopLoadingMessages();
+    document.getElementById('loading-error').style.display = 'block';
+    document.getElementById('error-text').textContent = 'Analysis failed: ' + (err.message || 'Unknown error. Please try again.');
+  }
+}
+
+function getScoreColor(score) {
+  if (score >= 9) return '#10B981';
+  if (score >= 7.5) return '#38B2AC';
+  if (score >= 6) return '#F59E0B';
+  if (score >= 4.5) return '#FF6B35';
+  return '#EF4444';
+}
+
+function getRatingStyle(rating) {
+  const map = {
+    EXCELLENT: {bg:'#D1FAE5',color:'#065F46'},
+    GOOD: {bg:'#CFFAFE',color:'#164E63'},
+    MODERATE: {bg:'#FEF3C7',color:'#92400E'},
+    CAUTION: {bg:'#FFEDD5',color:'#9A3412'},
+    POOR: {bg:'#FEE2E2',color:'#991B1B'},
+    UNSAFE: {bg:'#FEE2E2',color:'#7F1D1D'}
+  };
+  return map[rating] || {bg:'#F3F4F6',color:'#6B7280'};
+}
+
+function getRiskStripStyle(riskLevel) {
+  const r = riskLevel.toLowerCase();
+  if (r.includes('low')) return {bg:'#D1FAE5',color:'#065F46'};
+  if (r.includes('moderate')) return {bg:'#FEF3C7',color:'#92400E'};
+  if (r.includes('very')) return {bg:'#FEE2E2',color:'#7F1D1D'};
+  if (r.includes('high')) return {bg:'#FFE4E6',color:'#9F1239'};
+  return {bg:'#F3F4F6',color:'#6B7280'};
+}
+
+function getRiskBadgeClass(val) {
+  if (!val || val === 'None' || val === 'Low') return 'rb-low';
+  if (val === 'Medium') return 'rb-medium';
+  return 'rb-high';
+}
+
+function renderResults(d) {
+  // Product name
+  document.getElementById('res-product-name').textContent = d.productName + ' · ' + d.category;
+
+  // Score ring
+  const score = parseFloat(d.score) || 0;
+  const circumference = 351.86;
+  const offset = circumference - (score / 10) * circumference;
+  const arc = document.getElementById('score-arc');
+  const color = getScoreColor(score);
+  arc.style.stroke = color;
+  setTimeout(() => { arc.style.strokeDashoffset = offset; }, 100);
+
+  const scoreEl = document.getElementById('res-score-num');
+  scoreEl.textContent = score.toFixed(1);
+  scoreEl.style.color = color;
+
+  // Rating badge
+  const rStyle = getRatingStyle(d.rating);
+  const badge = document.getElementById('res-rating-badge');
+  badge.textContent = d.rating;
+  badge.style.background = rStyle.bg;
+  badge.style.color = rStyle.color;
+
+  // Risk strip
+  const rStrip = getRiskStripStyle(d.riskLevel);
+  const strip = document.getElementById('res-risk-strip');
+  strip.style.background = rStrip.bg;
+  document.getElementById('res-risk-label').textContent = d.riskLevel;
+  document.getElementById('res-risk-label').style.color = rStrip.color;
+  document.getElementById('res-risk-desc').textContent = d.riskDescription || '';
+  document.getElementById('res-risk-desc').style.color = rStrip.color;
+
+  // Button counts
+  document.getElementById('count-flagged').textContent = (d.flaggedIngredients || []).length;
+  document.getElementById('count-safe').textContent = (d.safeIngredients || []).length;
+
+  // Flagged list
+  const flaggedEl = document.getElementById('flagged-list');
+  if (d.flaggedIngredients && d.flaggedIngredients.length > 0) {
+    flaggedEl.innerHTML = d.flaggedIngredients.map(f => `
+      <div class="flag-item">
+        <div class="flag-item-name">${f.name}</div>
+        <div class="flag-item-status">${f.status}</div>
+        <div class="flag-item-reason">${f.reason}</div>
+      </div>`).join('');
+  } else {
+    flaggedEl.innerHTML = '<p style="font-size:13px;color:#6B7280;font-weight:600;">No flagged ingredients found.</p>';
+  }
+
+  // Safe list
+  const safeEl = document.getElementById('safe-list');
+  safeEl.innerHTML = (d.safeIngredients || []).map(s =>
+    `<div class="safe-pill">${s}</div>`).join('');
+
+  // Risk metrics
+  const rm = d.riskMetrics || {};
+  const riskNames = {
+    systemicToxicity: 'Systemic toxicity',
+    carcinogenicity: 'Carcinogenicity',
+    endocrineDisruption: 'Endocrine disruption',
+    organToxicity: 'Organ toxicity',
+    sensitization: 'Sensitization',
+    specialPopulations: 'Special populations'
+  };
+  document.getElementById('risk-list').innerHTML = Object.entries(riskNames).map(([k,label]) => `
+    <div class="risk-metric">
+      <span class="risk-metric-name">${label}</span>
+      <span class="risk-badge ${getRiskBadgeClass(rm[k])}">${rm[k] || 'Unknown'}</span>
+    </div>`).join('');
+
+  // Full report
+  const fr = document.getElementById('full-report-content');
+  fr.innerHTML = `
+    <div class="full-section">
+      <div class="full-section-title">Summary stats</div>
+      <div class="stat-row"><span class="stat-label">Banned ingredients</span><span class="stat-val" style="color:#B91C1C">${d.bannedCount || 0}</span></div>
+      <div class="stat-row"><span class="stat-label">Restricted ingredients</span><span class="stat-val" style="color:#92400E">${d.restrictedCount || 0}</span></div>
+      <div class="stat-row"><span class="stat-label">Carcinogen flags</span><span class="stat-val" style="color:#991B1B">${d.carcinogenFlags || 0}</span></div>
+      <div class="stat-row"><span class="stat-label">Endocrine disruptors</span><span class="stat-val" style="color:#B45309">${d.endocrineDisruptors || 0}</span></div>
+    </div>
+    <div class="full-section">
+      <div class="full-section-title">Top concerns</div>
+      <div class="full-section-body">${(d.topConcerns||[]).map((c,i)=>`${i+1}. ${c}`).join('\n')}</div>
+    </div>
+    <div class="full-section">
+      <div class="full-section-title">Best ingredients</div>
+      <div class="full-section-body">${(d.topSafe||[]).map((c,i)=>`${i+1}. ${c}`).join('\n')}</div>
+    </div>
+    <div class="full-section">
+      <div class="full-section-title">Recommendation</div>
+      <div class="full-section-body">${d.recommendation || ''}</div>
+    </div>
+    ${d.disclaimer ? `<div class="full-section"><div class="full-section-title">Regulatory note</div><div class="full-section-body" style="color:#6B7280">${d.disclaimer}</div></div>` : ''}
+  `;
+}
+
+function togglePanel(name) {
+  const panels = ['flagged','safe','risk','full'];
+  const btns = {flagged:'btn-flagged',safe:'btn-safe',risk:'btn-risk',full:'btn-full'};
+
+  if (activePanel === name) {
+    document.getElementById('panel-' + name).classList.remove('active');
+    document.getElementById(btns[name]).classList.remove('active');
+    activePanel = null;
+    return;
+  }
+
+  panels.forEach(p => {
+    document.getElementById('panel-' + p).classList.remove('active');
+    document.getElementById(btns[p]).classList.remove('active');
+  });
+
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById(btns[name]).classList.add('active');
+  activePanel = name;
+
+  setTimeout(() => {
+    document.getElementById('panel-' + name).scrollIntoView({behavior:'smooth', block:'nearest'});
+  }, 50);
+}
+
+// Enter key support
+document.getElementById('main-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startAnalysis();
+});
+</script>
+</body>
+</html>

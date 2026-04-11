@@ -1,0 +1,16 @@
+{
+  "name": "healthful-app",
+  "version": "1.0.0",
+  "description": "Ingredient Safety Analyzer",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": [
+    "safety",
+    "analyzer",
+    "ingredients"
+  ],
+  "author": "",
+  "license": "MIT"
+}
