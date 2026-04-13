@@ -367,6 +367,16 @@ const REGISTRY = {
   'p-phenylenediamine': { status: '⚠️ RESTRICTED', basis: 'EU Annex III', reason: 'Severe skin sensitizer and allergen.', systemic: 'Medium', carcinogen: 'None', endocrine: 'None', organ: 'Low', sensitization: 'Very High', scorePenalty: 1.5 },
   'resorcinol': { status: '⚠️ RESTRICTED', basis: 'EU Annex III', reason: 'Thyroid endocrine disruptor.', systemic: 'Medium', carcinogen: 'Low', endocrine: 'Very High', organ: 'Medium', sensitization: 'Medium', scorePenalty: 1.0 },
 
+  // ADDITIVES (INS / E-numbers)
+  '627': { status: '⚠️ WATCH', basis: 'EU Approved (Limit)', reason: 'Flavour enhancer (Disodium Guanylate); avoid if gout/uric acid issues.', systemic: 'Low', carcinogen: 'None', endocrine: 'None', organ: 'Low', sensitization: 'Low', scorePenalty: 0.5 },
+  '631': { status: '⚠️ WATCH', basis: 'EU Approved (Limit)', reason: 'Flavour enhancer (Disodium Inosinate); avoid if sensitive to MSG.', systemic: 'Low', carcinogen: 'None', endocrine: 'None', organ: 'Low', sensitization: 'Low', scorePenalty: 0.5 },
+  '551': { status: '⚠️ WATCH', basis: 'EU Review', reason: 'Silicon Dioxide; possible nanoparticle concerns if used in large quantities.', systemic: 'Low', carcinogen: 'None', endocrine: 'None', organ: 'Low', sensitization: 'Low', scorePenalty: 0.2 },
+  'hvp': { status: '⚠️ WATCH', basis: 'EWG', reason: 'Hydrolyzed Vegetable Protein; contains high glutamates (MSG-like effects).', systemic: 'Medium', carcinogen: 'None', endocrine: 'None', organ: 'Low', sensitization: 'Medium', scorePenalty: 0.5 },
+  'citric acid': { status: '✅ PERMITTED', basis: 'GRAS', reason: 'Safe preservative.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'None', scorePenalty: 0 },
+  'malic acid': { status: '✅ PERMITTED', basis: 'GRAS', reason: 'Safe fruit acid.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'None', scorePenalty: 0 },
+  'yeast extract': { status: '✅ PERMITTED', basis: 'GRAS', reason: 'Natural flavouring containing glutamates.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'Low', scorePenalty: 0 },
+  'tapioca': { status: '✅ PERMITTED', basis: 'Food', reason: 'Natural starch.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'None', scorePenalty: 0 },
+
   // WATCH / SPECIAL POPULATION
   'retin': { status: '⚠️ WATCH', basis: 'Pregnancy Warning', reason: 'High teratogenic risk (birth defects).', systemic: 'High', carcinogen: 'Low', endocrine: 'None', organ: 'Medium', sensitization: 'Medium', populationRisk: 'Pregnant women', scorePenalty: 0.5 },
   'camphor': { status: '⚠️ WATCH', basis: 'Pediatric Warning', reason: 'Seizure risk for children if swallowed.', systemic: 'Medium', carcinogen: 'None', endocrine: 'None', organ: 'Medium', sensitization: 'Low', populationRisk: 'Children < 6 years', scorePenalty: 1.0 },
@@ -439,9 +449,37 @@ async function runAnalysis(input) {
   document.getElementById('loading-error').style.display = 'none';
   startLoadingMessages();
 
-  await new Promise(resolve => setTimeout(resolve, 3000));
-
   try {
+    // Attempt AI Analysis via Proxy/Serverless
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input })
+    });
+
+    if (response.ok) {
+      analysisData = await response.json();
+    } else {
+      // FALLBACK TO LOCAL ENGINE IF PROXY FAILS (e.g. no API key set)
+      console.warn("AI analysis unavailable. Using local rule engine.");
+      analysisData = runLocalAnalysis(input);
+    }
+
+    stopLoadingMessages();
+    renderResults(analysisData);
+    showScreen('results');
+
+  } catch (err) {
+    // FINAL FALLBACK
+    console.error("AI fetch error:", err);
+    analysisData = runLocalAnalysis(input);
+    stopLoadingMessages();
+    renderResults(analysisData);
+    showScreen('results');
+  }
+}
+
+function runLocalAnalysis(input) {
     const rawTerms = input.toLowerCase().split(/[,\n;]+/).map(t => t.trim().replace(/\*|\|/g, '')).filter(t => t.length > 2);
     
     let score = 10.0;
@@ -489,10 +527,8 @@ async function runAnalysis(input) {
             populationWarnings.push({ pop: data.populationRisk, trigger: term, warning: data.reason });
           }
 
-          // APPLY STEP 5 SCORING WEIGHTS
           score -= data.scorePenalty || 0;
           
-          // MAP STEP 3 RISK DIMENSIONS
           riskLevels.systemicToxicity = mapLevel(riskLevels.systemicToxicity, data.systemic);
           riskLevels.carcinogenicity = mapLevel(riskLevels.carcinogenicity, data.carcinogen);
           riskLevels.endocrineDisruption = mapLevel(riskLevels.endocrineDisruption, data.endocrine);
@@ -500,11 +536,10 @@ async function runAnalysis(input) {
           riskLevels.sensitization = mapLevel(riskLevels.sensitization, data.sensitization);
         }
       } else {
-        safe.push({ name: term, why: 'Unknown; no flags in database.' });
+        safe.push({ name: term, why: 'Unverified; check local database.' });
       }
     });
 
-    // Score capping & calibration
     score = Math.max(1.0, Math.min(10.0, score));
 
     let rating = 'EXCELLENT';
@@ -514,7 +549,7 @@ async function runAnalysis(input) {
     else if (score < 7.5) rating = 'MODERATE';
     else if (score < 9.0) rating = 'GOOD';
 
-    analysisData = {
+    const result = {
       productName: input.length > 25 ? "Product Analysis" : input,
       score: score.toFixed(1),
       rating: rating,
@@ -530,16 +565,32 @@ async function runAnalysis(input) {
       populationWarnings: populationWarnings,
       recommendation: score > 7.4 ? "Safe for regular daily use based on analyzed composition." : "Not recommended for long-term daily exposure due to flagged bio-accumulative risks."
     };
-
-    stopLoadingMessages();
-    renderResults(analysisData);
-    showScreen('results');
-
-  } catch (err) {
-    stopLoadingMessages();
-    document.getElementById('loading-error').style.display = 'block';
-    document.getElementById('error-text').textContent = 'Analysis engine error: ' + err.message;
-  }
+    
+    // Add raw report for local fallback
+    result.rawReport = `
+═══════════════════════════════════════════════════
+**INGREDIENT SAFETY ANALYSIS REPORT**
+═══════════════════════════════════════════════════
+**Product** : ${result.productName}
+**Category** : Personal Care
+**Analysis by** : Healthy-or-Not v1.0 (Local Engine)
+───────────────────────────────────────────────────
+**BANNED INGREDIENTS FOUND** : ${bannedCount} 🚫
+**RESTRICTED INGREDIENTS FOUND** : ${restrictedCount} ⚠️
+**CARCINOGEN FLAGS** : ${carcinogenFlags}
+**ENDOCRINE DISRUPTORS** : ${endocrineDisruptors}
+**SPECIAL POPULATION WARNINGS** : ${populationWarnings.length}
+───────────────────────────────────────────────────
+**LONG-TERM HUMAN SAFETY SCORE** : ${result.score} / 10
+**RATING** : ${result.rating}
+───────────────────────────────────────────────────
+**TOP CONCERNS:**
+${flagged.slice(0,3).map((f,i)=>`${i+1}. ${f.name}`).join('\n')}
+**RECOMMENDATION:**
+${result.recommendation}
+═══════════════════════════════════════════════════`;
+    
+    return result;
 }
 
 function getScoreColor(score) {
@@ -632,38 +683,31 @@ function renderResults(d) {
 
   // Final structured report (Step 7 mapping)
   const fr = document.getElementById('full-report-content');
-  fr.innerHTML = `
-    <div style="font-family:monospace; line-height:1.2; word-break:break-all;">
+  const reportBody = d.rawReport || `
+    <div style="font-family:monospace; line-height:1.2;">
       ═══════════════════════════════════════════════════<br/>
       <strong>INGREDIENT SAFETY ANALYSIS REPORT</strong><br/>
       ═══════════════════════════════════════════════════<br/>
       <strong>Product</strong>     : ${d.productName}<br/>
-      <strong>Category</strong>    : Personal Care / Cosmetic<br/>
       <strong>Analysis by</strong> : Healthy-or-Not v1.0<br/>
       ───────────────────────────────────────────────────<br/>
-      BANNED INGREDIENTS FOUND     : ${d.bannedCount} 🚫<br/>
-      RESTRICTED INGREDIENTS FOUND : ${d.restrictedCount} ⚠️<br/>
-      CARCINOGEN FLAGS             : ${d.carcinogenFlags}<br/>
-      ENDOCRINE DISRUPTORS         : ${d.endocrineDisruptors}<br/>
-      SPECIAL POPULATION WARNINGS  : ${d.populationWarnings.length}<br/>
-      ───────────────────────────────────────────────────<br/>
-      LONG-TERM HUMAN SAFETY SCORE : ${d.score} / 10<br/>
-      RATING                       : ${d.rating}<br/>
-      ───────────────────────────────────────────────────<br/>
-      <strong>TOP CONCERNS:</strong><br/>
-      ${d.flaggedIngredients.length > 0 ? d.flaggedIngredients.slice(0,3).map((f,i)=>`${i+1}. ${f.name} - ${f.reason}`).join('<br/>') : '1. No significant concerns.'}<br/><br/>
-      <strong>SAFE/BENEFICIAL INGREDIENTS:</strong><br/>
-      ${d.safeIngredients.slice(0,3).map((s,i)=>`${i+1}. ${s.name}`).join('<br/>')}<br/><br/>
-      <strong>RECOMMENDATION:</strong><br/>
-      ${d.recommendation}<br/>
+      Score : ${d.score} / 10<br/>
+      Rating: ${d.rating}<br/>
       ═══════════════════════════════════════════════════
     </div>
-    ${d.populationWarnings.length > 0 ? `
+  `;
+  
+  fr.innerHTML = reportBody.includes('════') ? 
+    `<div style="font-family:monospace; line-height:1.2; word-break:break-all; background:#F9FAFB; padding:15px; border-radius:12px; border:1px solid #E5E7EB; white-space: pre-wrap;">${reportBody}</div>` : 
+    reportBody;
+
+  if (d.populationWarnings && d.populationWarnings.length > 0) {
+    fr.innerHTML += `
     <div style="margin-top:16px; padding:12px; background:#FEF3C7; border-radius:12px; border:1.5px solid #F59E0B;">
       <div style="font-size:12px; font-weight:800; color:#92400E; margin-bottom:8px;">⚠️ SPECIAL POPULATION ALERTS</div>
       ${d.populationWarnings.map(w => `<div style="font-size:12px; margin-bottom:6px; color:#92400E;"><strong>${w.pop}:</strong> ${w.trigger} - ${w.warning}</div>`).join('')}
-    </div>` : ''}
-  `;
+    </div>`;
+  }
 }
 
 function togglePanel(name) {
