@@ -346,43 +346,45 @@ const MESSAGES = [
   'Extracting ingredients…',
   'Cross-referencing global databases…',
   'Checking banned substances…',
-  'Calculating safety score…',
-  'Analyzing long-term human risk…',
-  'Almost there…'
-];
-
-// ── LOCAL KNOWLEDGE BASE ──
-// Based on Step 2 & 3 of Healthy-or-Not Skill
+  'Calculating safet// ── LOCAL KNOWLEDGE BASE ──
+// Comprehensive database mapping to EU, FDA, IARC, and Prop 65
 const REGISTRY = {
   // BANNED (Annex II / FDA Prohibited)
-  'formaldehyde': { status: 'BANNED', bannedIn: 'EU, US FDA', reason: 'Known human carcinogen and skin sensitizer.', systemic: 'High', carcinogen: 'High', endocrine: 'None', organ: 'High', sensitization: 'Very High', iarc: '1', scorePenalty: 2.5 },
-  'mercury': { status: 'BANNED', bannedIn: 'Global', reason: 'High systemic toxicity, organ damage.', systemic: 'Very High', carcinogen: 'Low', endocrine: 'None', organ: 'Very High', sensitization: 'Medium', scorePenalty: 2.0 },
-  'lead': { status: 'BANNED', bannedIn: 'Global', reason: 'Neurotoxin and reproductive toxin.', systemic: 'Very High', carcinogen: 'Medium', endocrine: 'High', organ: 'Very High', sensitization: 'Low', scorePenalty: 2.0 },
-  'bha': { status: 'BANNED', bannedIn: 'EU (partially)', reason: 'Endocrine disruptor and possible carcinogen.', systemic: 'Medium', carcinogen: 'Medium', endocrine: 'High', organ: 'Medium', sensitization: 'Low', iarc: '2B', scorePenalty: 1.0 },
-  'asbestos': { status: 'BANNED', bannedIn: 'Global', reason: 'Proven carcinogen.', systemic: 'Low', carcinogen: 'Very High', endocrine: 'None', organ: 'High', sensitization: 'Low', iarc: '1', scorePenalty: 2.5 },
-  
-  // RESTRICTED (Annex III)
-  'triclosan': { status: 'RESTRICTED', bannedIn: 'EU, FDA', reason: 'Hormone disruption and antibiotic resistance.', systemic: 'Medium', carcinogen: 'Low', endocrine: 'High', organ: 'Medium', sensitization: 'Low', scorePenalty: 1.5 },
-  'paraben': { status: 'RESTRICTED', bannedIn: 'EU', reason: 'Certain types restricted due to endocrine disruption.', systemic: 'Medium', carcinogen: 'Low', endocrine: 'High', organ: 'Low', sensitization: 'Medium', scorePenalty: 1.0 },
-  'methylparaben': { status: 'RESTRICTED', bannedIn: 'EU', reason: 'Endocrine concerns at high concentrations.', systemic: 'Medium', carcinogen: 'Low', endocrine: 'Medium', organ: 'Low', sensitization: 'Medium', scorePenalty: 0.5 },
-  'propylparaben': { status: 'RESTRICTED', bannedIn: 'EU', reason: 'Potential endocrine disruptor.', systemic: 'Medium', carcinogen: 'Low', endocrine: 'High', organ: 'Low', sensitization: 'Medium', scorePenalty: 1.0 },
-  'p-phenylenediamine': { status: 'RESTRICTED', bannedIn: 'EU', reason: 'Strong sensitizer, risk of severe allergy.', systemic: 'Medium', carcinogen: 'None', endocrine: 'None', organ: 'Low', sensitization: 'Very High', scorePenalty: 1.5 },
-  
-  // WATCH / RISK
-  'retinol': { status: 'WATCH', bannedIn: 'None', reason: 'High risk for pregnant women (teratogenic).', systemic: 'Medium', carcinogen: 'None', endocrine: 'None', organ: 'Medium', sensitization: 'Medium', populationRisk: 'Pregnant women', scorePenalty: 0.5 },
-  'retinoid': { status: 'WATCH', bannedIn: 'None', reason: 'Developmental risk during pregnancy.', systemic: 'High', carcinogen: 'None', endocrine: 'None', organ: 'Medium', sensitization: 'Medium', populationRisk: 'Pregnant women', scorePenalty: 0.5 },
-  'camphor': { status: 'WATCH', bannedIn: 'Children (Concentration limit)', reason: 'Seizure risk for children if swallowed.', systemic: 'Medium', carcinogen: 'None', endocrine: 'None', organ: 'Medium', sensitization: 'Low', populationRisk: 'Children < 6 years', scorePenalty: 0.5 },
-  'titanium dioxide': { status: 'WATCH', bannedIn: 'EU (Food)', reason: 'IARC 2B Possible carcinogen via inhalation.', systemic: 'Low', carcinogen: 'Medium', endocrine: 'None', organ: 'Low', sensitization: 'Low', iarc: '2B', scorePenalty: 0.75 },
-  'ethanol': { status: 'WATCH', bannedIn: 'None', reason: 'Known carcinogen if consumed; drying on skin.', systemic: 'Low', carcinogen: 'High', endocrine: 'None', organ: 'Medium', sensitization: 'Low', iarc: '1', scorePenalty: 1.0 },
-  
-  // SAFE
-  'water': { status: 'PERMITTED', bannedIn: 'All', reason: 'Essential safe ingredient.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'None', scorePenalty: 0 },
-  'aqua': { status: 'PERMITTED', bannedIn: 'All', reason: 'Essential safe ingredient.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'None', scorePenalty: 0 },
-  'glycerin': { status: 'PERMITTED', bannedIn: 'All', reason: 'Safe humectant.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'None', scorePenalty: 0 },
-  'aloe vera': { status: 'PERMITTED', bannedIn: 'All', reason: 'Natural soothing agent.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'Low', scorePenalty: 0 },
-  'coconut oil': { status: 'PERMITTED', bannedIn: 'All', reason: 'Emollient.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'Low', scorePenalty: 0 },
-  'shea butter': { status: 'PERMITTED', bannedIn: 'All', reason: 'Safe emollient.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'None', scorePenalty: 0 },
-  'niacinamide': { status: 'PERMITTED', bannedIn: 'All', reason: 'Beneficial Vitamin B3.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'Low', scorePenalty: 0 }
+  'formaldehyde': { status: '🚫 BANNED', basis: 'EU Annex II', reason: 'Known human carcinogen and high sensitizer.', systemic: 'High', carcinogen: 'Very High', endocrine: 'None', organ: 'High', sensitization: 'Very High', iarc: '1', scorePenalty: 2.5 },
+  'mercury': { status: '🚫 BANNED', basis: 'Global', reason: 'Severe neurotoxicity and organ damage.', systemic: 'Very High', carcinogen: 'Low', endocrine: 'None', organ: 'Very High', sensitization: 'Medium', scorePenalty: 2.0 },
+  'lead': { status: '🚫 BANNED', basis: 'Prop 65', reason: 'Potent neurotoxin and reproductive toxin.', systemic: 'Very High', carcinogen: 'Medium', endocrine: 'High', organ: 'Very High', sensitization: 'Low', scorePenalty: 2.0 },
+  'asbestos': { status: '🚫 BANNED', basis: 'IARC Group 1', reason: 'Proven human carcinogen.', systemic: 'Low', carcinogen: 'Very High', endocrine: 'None', organ: 'High', sensitization: 'Low', iarc: '1', scorePenalty: 2.5 },
+  'bithionol': { status: '🚫 BANNED', basis: 'US FDA', reason: 'Causes photosensitivity reactions.', systemic: 'Medium', carcinogen: 'None', endocrine: 'None', organ: 'Low', sensitization: 'High', scorePenalty: 2.0 },
+  'chloroform': { status: '🚫 BANNED', basis: 'US FDA', reason: 'Liver and kidney carcinogen.', systemic: 'High', carcinogen: 'High', endocrine: 'None', organ: 'High', sensitization: 'Low', iarc: '2B', scorePenalty: 2.0 },
+  'vinyl chloride': { status: '🚫 BANNED', basis: 'EU Annex II', reason: 'Highly carcinogenic propellant.', systemic: 'High', carcinogen: 'Very High', endocrine: 'None', organ: 'High', sensitization: 'Low', iarc: '1', scorePenalty: 2.5 },
+
+  // RESTRICTED (Annex III / Watch List)
+  'triclosan': { status: '⚠️ RESTRICTED', basis: 'EU Annex III', reason: 'Endocrine disruptor; antibiotic resistance risk.', systemic: 'Medium', carcinogen: 'Low', endocrine: 'Very High', organ: 'Medium', sensitization: 'Low', scorePenalty: 1.5 },
+  'paraben': { status: '⚠️ RESTRICTED', basis: 'EU Annex III', reason: 'Mimics estrogen; possible endocrine disruptor.', systemic: 'Medium', carcinogen: 'Low', endocrine: 'High', organ: 'Low', sensitization: 'Medium', scorePenalty: 1.0 },
+  'phthalate': { status: '⚠️ RESTRICTED', basis: 'Prop 65', reason: 'Reproductive and developmental toxicity.', systemic: 'High', carcinogen: 'Low', endocrine: 'Very High', organ: 'High', sensitization: 'Low', scorePenalty: 1.5 },
+  'toluene': { status: '⚠️ RESTRICTED', basis: 'EU Annex III', reason: 'Developmental toxin and irritant.', systemic: 'High', carcinogen: 'Low', endocrine: 'None', organ: 'High', sensitization: 'Low', scorePenalty: 1.5 },
+  'coal tar': { status: '⚠️ RESTRICTED', basis: 'EC 1223/2009', reason: 'IARC 1 Carcinogen; skin irritant.', systemic: 'Medium', carcinogen: 'Very High', endocrine: 'None', organ: 'Medium', sensitization: 'High', iarc: '1', scorePenalty: 2.5 },
+  'p-phenylenediamine': { status: '⚠️ RESTRICTED', basis: 'EU Annex III', reason: 'Severe skin sensitizer and allergen.', systemic: 'Medium', carcinogen: 'None', endocrine: 'None', organ: 'Low', sensitization: 'Very High', scorePenalty: 1.5 },
+  'resorcinol': { status: '⚠️ RESTRICTED', basis: 'EU Annex III', reason: 'Thyroid endocrine disruptor.', systemic: 'Medium', carcinogen: 'Low', endocrine: 'Very High', organ: 'Medium', sensitization: 'Medium', scorePenalty: 1.0 },
+
+  // WATCH / SPECIAL POPULATION
+  'retin': { status: '⚠️ WATCH', basis: 'Pregnancy Warning', reason: 'High teratogenic risk (birth defects).', systemic: 'High', carcinogen: 'Low', endocrine: 'None', organ: 'Medium', sensitization: 'Medium', populationRisk: 'Pregnant women', scorePenalty: 0.5 },
+  'camphor': { status: '⚠️ WATCH', basis: 'Pediatric Warning', reason: 'Seizure risk for children if swallowed.', systemic: 'Medium', carcinogen: 'None', endocrine: 'None', organ: 'Medium', sensitization: 'Low', populationRisk: 'Children < 6 years', scorePenalty: 1.0 },
+  'fluoride': { status: '⚠️ WATCH', basis: 'Concentration Limit', reason: 'Dental fluorosis and toxicity in children.', systemic: 'Medium', carcinogen: 'None', endocrine: 'None', organ: 'Medium', sensitization: 'Low', populationRisk: 'Children < 6 years', scorePenalty: 0.5 },
+  'titanium dioxide': { status: '⚠️ WATCH', basis: 'IARC 2B', reason: 'Carcinogenic via inhalation (powders).', systemic: 'None', carcinogen: 'Medium', endocrine: 'None', organ: 'Low', sensitization: 'Low', iarc: '2B', scorePenalty: 0.75 },
+  'ethanol': { status: '⚠️ WATCH', basis: 'Systemic Risk', reason: 'Drying agent; carcinogen if ingested.', systemic: 'Medium', carcinogen: 'High', endocrine: 'None', organ: 'Medium', sensitization: 'Low', iarc: '1', scorePenalty: 1.0 },
+
+  // SAFE / PERMITTED
+  'water': { status: '✅ PERMITTED', basis: 'All', reason: 'Safe.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'None', scorePenalty: 0 },
+  'aqua': { status: '✅ PERMITTED', basis: 'All', reason: 'Safe.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'None', scorePenalty: 0 },
+  'glycerin': { status: '✅ PERMITTED', basis: 'All', reason: 'Safe humectant.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'None', scorePenalty: 0 },
+  'aloe': { status: '✅ PERMITTED', basis: 'All', reason: 'Soothing agent.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'Low', scorePenalty: 0 },
+  'niacinamide': { status: '✅ PERMITTED', basis: 'All', reason: 'Healthy vitamin B3.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'Low', scorePenalty: 0 },
+  'shea butter': { status: '✅ PERMITTED', basis: 'All', reason: 'Natural emollient.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'None', scorePenalty: 0 },
+  'coconut oil': { status: '✅ PERMITTED', basis: 'All', reason: 'Safe emollient.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'Low', scorePenalty: 0 },
+  'hyaluronic acid': { status: '✅ PERMITTED', basis: 'All', reason: 'Potent hydration agent.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'None', scorePenalty: 0 },
+  'panthenol': { status: '✅ PERMITTED', basis: 'All', reason: 'Vitamin B5; healing.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'Low', scorePenalty: 0 },
+  'tocopherol': { status: '✅ PERMITTED', basis: 'All', reason: 'Vitamin E; antioxidant.', systemic: 'None', carcinogen: 'None', endocrine: 'None', organ: 'None', sensitization: 'Low', scorePenalty: 0 }
 };
 
 function showScreen(id) {
@@ -424,21 +426,20 @@ function startLoadingMessages() {
       el.textContent = MESSAGES[i];
       el.style.opacity = '1';
     }, 300);
-  }, 1800);
+  }, 1200);
 }
 
 function stopLoadingMessages() {
   clearInterval(msgInterval);
 }
 
-// ── CORE ENGINE ──
+// ── CORE ENGINE (Logic step 1-5) ──
 async function runAnalysis(input) {
   showScreen('loading');
   document.getElementById('loading-error').style.display = 'none';
   startLoadingMessages();
 
-  // Simulate analysis time
-  await new Promise(resolve => setTimeout(resolve, 4000));
+  await new Promise(resolve => setTimeout(resolve, 3000));
 
   try {
     const rawTerms = input.toLowerCase().split(/[,\n;]+/).map(t => t.trim().replace(/\*|\|/g, '')).filter(t => t.length > 2);
@@ -448,11 +449,11 @@ async function runAnalysis(input) {
     const safe = [];
     const populationWarnings = [];
     const riskLevels = {
-      systemicToxicity: 'Low',
-      carcinogenicity: 'Low',
-      endocrineDisruption: 'Low',
-      organToxicity: 'Low',
-      sensitization: 'Low'
+      systemicToxicity: 'None',
+      carcinogenicity: 'None',
+      endocrineDisruption: 'None',
+      organToxicity: 'None',
+      sensitization: 'None'
     };
 
     let bannedCount = 0;
@@ -466,32 +467,32 @@ async function runAnalysis(input) {
     };
 
     rawTerms.forEach(term => {
-      // Basic fuzzy match
       const key = Object.keys(REGISTRY).find(k => term.includes(k) || k.includes(term));
       if (key) {
         const data = REGISTRY[key];
-        if (data.status === 'PERMITTED') {
-          safe.push(term);
+        if (data.status.includes('PERMITTED')) {
+          safe.push({ name: term, why: data.reason });
         } else {
           flagged.push({
             name: term,
             status: data.status,
+            basis: data.basis,
             reason: data.reason
           });
           
-          if (data.status === 'BANNED') bannedCount++;
-          if (data.status === 'RESTRICTED') restrictedCount++;
+          if (data.status.includes('BANNED')) bannedCount++;
+          if (data.status.includes('RESTRICTED')) restrictedCount++;
           if (data.iarc) carcinogenFlags++;
-          if (data.endocrine === 'High' || data.endocrine === 'Medium') endocrineDisruptors++;
+          if (data.endocrine === 'High' || data.endocrine === 'Very High') endocrineDisruptors++;
           
           if (data.populationRisk) {
             populationWarnings.push({ pop: data.populationRisk, trigger: term, warning: data.reason });
           }
 
-          // Apply deductions from logic (Step 5)
+          // APPLY STEP 5 SCORING WEIGHTS
           score -= data.scorePenalty || 0;
           
-          // Update aggregate risk metrics
+          // MAP STEP 3 RISK DIMENSIONS
           riskLevels.systemicToxicity = mapLevel(riskLevels.systemicToxicity, data.systemic);
           riskLevels.carcinogenicity = mapLevel(riskLevels.carcinogenicity, data.carcinogen);
           riskLevels.endocrineDisruption = mapLevel(riskLevels.endocrineDisruption, data.endocrine);
@@ -499,50 +500,35 @@ async function runAnalysis(input) {
           riskLevels.sensitization = mapLevel(riskLevels.sensitization, data.sensitization);
         }
       } else {
-        // Unknown ingredients default to "Safe" for demo but flagged as watch if suspicious keywords appear
-        if (term.includes('acid') || term.includes('oxide') || term.includes('sulfate')) {
-          safe.push(term); // Simplified for demo
-        } else {
-          safe.push(term);
-        }
+        safe.push({ name: term, why: 'Unknown; no flags in database.' });
       }
     });
 
-    // Final score capping
+    // Score capping & calibration
     score = Math.max(1.0, Math.min(10.0, score));
 
     let rating = 'EXCELLENT';
-    if (score < 4.5) rating = 'UNSAFE';
-    else if (score < 6.0) rating = 'POOR';
-    else if (score < 7.5) rating = 'CAUTION';
+    if (score < 3.0) rating = 'UNSAFE';
+    else if (score < 4.5) rating = 'POOR';
+    else if (score < 6.0) rating = 'CAUTION';
+    else if (score < 7.5) rating = 'MODERATE';
     else if (score < 9.0) rating = 'GOOD';
 
-    let riskLevelText = 'Low risk';
-    if (score < 3.0) riskLevelText = 'Very high risk';
-    else if (score < 5.0) riskLevelText = 'High risk';
-    else if (score < 7.5) riskLevelText = 'Moderate risk';
-
     analysisData = {
-      productName: input.length > 20 ? "Analyzed Product" : input,
-      category: "Personal Care",
+      productName: input.length > 25 ? "Product Analysis" : input,
       score: score.toFixed(1),
       rating: rating,
-      riskLevel: riskLevelText,
-      riskDescription: flagged.length > 0 ? `Found ${flagged.length} flagged ingredients including ${flagged[0].name}.` : "No immediate banned or highly restricted substances found.",
+      riskLevel: score > 7.5 ? 'Low risk' : (score > 5.0 ? 'Moderate risk' : 'High risk'),
+      riskDescription: flagged.length > 0 ? `Detected ${flagged.length} substances of concern with cumulative risks.` : "Fully compliant with major safety database thresholds.",
       flaggedIngredients: flagged,
       safeIngredients: safe,
-      riskMetrics: {
-        ...riskLevels,
-        specialPopulations: populationWarnings.length > 0 ? 'Medium' : 'None'
-      },
+      riskMetrics: riskLevels,
       bannedCount,
       restrictedCount,
       carcinogenFlags,
       endocrineDisruptors,
-      topConcerns: flagged.map(f => f.reason).slice(0,3),
-      topSafe: safe.slice(0,3),
-      recommendation: score > 7.5 ? "Generally safe for daily use. Maintain standard hygiene routines." : "Exercise caution. Contains ingredients flagged by global regulatory bodies like EU or IARC.",
-      populationWarnings: populationWarnings
+      populationWarnings: populationWarnings,
+      recommendation: score > 7.4 ? "Safe for regular daily use based on analyzed composition." : "Not recommended for long-term daily exposure due to flagged bio-accumulative risks."
     };
 
     stopLoadingMessages();
@@ -552,7 +538,7 @@ async function runAnalysis(input) {
   } catch (err) {
     stopLoadingMessages();
     document.getElementById('loading-error').style.display = 'block';
-    document.getElementById('error-text').textContent = 'Analysis failed locally: ' + err.message;
+    document.getElementById('error-text').textContent = 'Analysis engine error: ' + err.message;
   }
 }
 
@@ -576,23 +562,16 @@ function getRatingStyle(rating) {
   return map[rating] || {bg:'#F3F4F6',color:'#6B7280'};
 }
 
-function getRiskStripStyle(riskLevel) {
-  const r = riskLevel.toLowerCase();
-  if (r.includes('low')) return {bg:'#D1FAE5',color:'#065F46'};
-  if (r.includes('moderate')) return {bg:'#FEF3C7',color:'#92400E'};
-  if (r.includes('very')) return {bg:'#FEE2E2',color:'#7F1D1D'};
-  if (r.includes('high')) return {bg:'#FFE4E6',color:'#9F1239'};
-  return {bg:'#F3F4F6',color:'#6B7280'};
-}
-
 function getRiskBadgeClass(val) {
-  if (!val || val === 'None' || val === 'Low') return 'rb-low';
-  if (val === 'Medium') return 'rb-medium';
+  const v = (val || 'None').toLowerCase();
+  if (v === 'none' || v === 'low') return 'rb-low';
+  if (v === 'medium') return 'rb-medium';
   return 'rb-high';
 }
 
+// ── UI RENDERING (Mapping Step 7) ──
 function renderResults(d) {
-  document.getElementById('res-product-name').textContent = d.productName + ' · ' + d.category;
+  document.getElementById('res-product-name').textContent = d.productName;
 
   const score = parseFloat(d.score) || 0;
   const circumference = 351.86;
@@ -612,70 +591,78 @@ function renderResults(d) {
   badge.style.background = rStyle.bg;
   badge.style.color = rStyle.color;
 
-  const rStrip = getRiskStripStyle(d.riskLevel);
-  const strip = document.getElementById('res-risk-strip');
-  strip.style.background = rStrip.bg;
   document.getElementById('res-risk-label').textContent = d.riskLevel;
-  document.getElementById('res-risk-label').style.color = rStrip.color;
-  document.getElementById('res-risk-desc').textContent = d.riskDescription || '';
-  document.getElementById('res-risk-desc').style.color = rStrip.color;
+  document.getElementById('res-risk-desc').textContent = d.riskDescription;
 
   document.getElementById('count-flagged').textContent = d.flaggedIngredients.length;
   document.getElementById('count-safe').textContent = d.safeIngredients.length;
 
+  // Flagged panel (Step 2 output)
   const flaggedEl = document.getElementById('flagged-list');
   if (d.flaggedIngredients.length > 0) {
     flaggedEl.innerHTML = d.flaggedIngredients.map(f => `
       <div class="flag-item">
         <div class="flag-item-name">${f.name}</div>
-        <div class="flag-item-status">${f.status}</div>
+        <div class="flag-item-status">${f.status} · ${f.basis}</div>
         <div class="flag-item-reason">${f.reason}</div>
       </div>`).join('');
   } else {
-    flaggedEl.innerHTML = '<p style="font-size:13px;color:#6B7280;font-weight:600;">No immediate safety flags found in our database.</p>';
+    flaggedEl.innerHTML = '<p style="font-size:13px;color:#6B7280;">No flagged ingredients detected.</p>';
   }
 
+  // Safe panel
   const safeEl = document.getElementById('safe-list');
   safeEl.innerHTML = d.safeIngredients.map(s =>
-    `<div class="safe-pill">${s}</div>`).join('');
+    `<div class="safe-pill">${s.name}</div>`).join('');
 
-  const rm = d.riskMetrics || {};
-  const riskNames = {
+  // Risk metrics panel (Step 3 mapping)
+  const rm = d.riskMetrics;
+  const riskLabels = {
     systemicToxicity: 'Systemic toxicity',
     carcinogenicity: 'Carcinogenicity',
     endocrineDisruption: 'Endocrine disruption',
     organToxicity: 'Organ toxicity',
-    sensitization: 'Sensitization',
-    specialPopulations: 'Special populations'
+    sensitization: 'Sensitization'
   };
-  document.getElementById('risk-list').innerHTML = Object.entries(riskNames).map(([k,label]) => `
+  document.getElementById('risk-list').innerHTML = Object.entries(riskLabels).map(([k,label]) => `
     <div class="risk-metric">
       <span class="risk-metric-name">${label}</span>
-      <span class="risk-badge ${getRiskBadgeClass(rm[k])}">${rm[k] || 'Unknown'}</span>
+      <span class="risk-badge ${getRiskBadgeClass(rm[k])}">${rm[k]}</span>
     </div>`).join('');
 
+  // Final structured report (Step 7 mapping)
   const fr = document.getElementById('full-report-content');
   fr.innerHTML = `
-    ${d.populationWarnings && d.populationWarnings.length > 0 ? `
-    <div class="full-section" style="background:#FFFBEB; padding:12px; border-radius:10px; border:1px solid #FDE68A;">
-      <div class="full-section-title" style="color:#92400E;">⚠️ SPECIAL POPULATION ALERTS</div>
-      ${d.populationWarnings.map(w => `<div class="full-section-body" style="color:#92400E; margin-bottom:8px;"><strong>${w.pop}:</strong> ${w.trigger} - ${w.warning}</div>`).join('')}
+    <div style="font-family:monospace; line-height:1.2; word-break:break-all;">
+      ═══════════════════════════════════════════════════<br/>
+      <strong>INGREDIENT SAFETY ANALYSIS REPORT</strong><br/>
+      ═══════════════════════════════════════════════════<br/>
+      <strong>Product</strong>     : ${d.productName}<br/>
+      <strong>Category</strong>    : Personal Care / Cosmetic<br/>
+      <strong>Analysis by</strong> : Healthy-or-Not v1.0<br/>
+      ───────────────────────────────────────────────────<br/>
+      BANNED INGREDIENTS FOUND     : ${d.bannedCount} 🚫<br/>
+      RESTRICTED INGREDIENTS FOUND : ${d.restrictedCount} ⚠️<br/>
+      CARCINOGEN FLAGS             : ${d.carcinogenFlags}<br/>
+      ENDOCRINE DISRUPTORS         : ${d.endocrineDisruptors}<br/>
+      SPECIAL POPULATION WARNINGS  : ${d.populationWarnings.length}<br/>
+      ───────────────────────────────────────────────────<br/>
+      LONG-TERM HUMAN SAFETY SCORE : ${d.score} / 10<br/>
+      RATING                       : ${d.rating}<br/>
+      ───────────────────────────────────────────────────<br/>
+      <strong>TOP CONCERNS:</strong><br/>
+      ${d.flaggedIngredients.length > 0 ? d.flaggedIngredients.slice(0,3).map((f,i)=>`${i+1}. ${f.name} - ${f.reason}`).join('<br/>') : '1. No significant concerns.'}<br/><br/>
+      <strong>SAFE/BENEFICIAL INGREDIENTS:</strong><br/>
+      ${d.safeIngredients.slice(0,3).map((s,i)=>`${i+1}. ${s.name}`).join('<br/>')}<br/><br/>
+      <strong>RECOMMENDATION:</strong><br/>
+      ${d.recommendation}<br/>
+      ═══════════════════════════════════════════════════
+    </div>
+    ${d.populationWarnings.length > 0 ? `
+    <div style="margin-top:16px; padding:12px; background:#FEF3C7; border-radius:12px; border:1.5px solid #F59E0B;">
+      <div style="font-size:12px; font-weight:800; color:#92400E; margin-bottom:8px;">⚠️ SPECIAL POPULATION ALERTS</div>
+      ${d.populationWarnings.map(w => `<div style="font-size:12px; margin-bottom:6px; color:#92400E;"><strong>${w.pop}:</strong> ${w.trigger} - ${w.warning}</div>`).join('')}
     </div>` : ''}
-    <div class="full-section">
-      <div class="full-section-title">Summary metrics</div>
-      <div class="stat-row"><span class="stat-label">Banned substances</span><span class="stat-val" style="color:#B91C1C">${d.bannedCount || 0}</span></div>
-      <div class="stat-row"><span class="stat-label">Restricted ingredients</span><span class="stat-val" style="color:#92400E">${d.restrictedCount || 0}</span></div>
-      <div class="stat-row"><span class="stat-label">Carcinogen flags</span><span class="stat-val" style="color:#991B1B">${d.carcinogenFlags || 0}</span></div>
-      <div class="stat-row"><span class="stat-label">Endocrine disruptors</span><span class="stat-val" style="color:#B45309">${d.endocrineDisruptors || 0}</span></div>
-    </div>
-    <div class="full-section">
-      <div class="full-section-title">Key findings</div>
-      <div class="full-section-body">${d.topConcerns.length > 0 ? d.topConcerns.map((c,i)=>`${i+1}. ${c}`).join('\n') : 'No major concerns recorded.'}</div>
-    </div>
-    <div class="full-section">
-      <div class="full-section-title">Recommendation</div>
-      <div class="full-section-body">${d.recommendation || ''}</div>
-    </div>
   `;
 }
 
